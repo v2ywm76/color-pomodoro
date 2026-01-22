@@ -1,98 +1,437 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<title>Color Pomodoro Timer</title>
-<style>
-  .timer-container {
-    position: relative;
-    width: 200px;
-    height: 200px;
-    margin: 20px;
-  }
-  .progress-ring {
-    transform: rotate(-90deg);
-  }
-  .progress-ring__circle {
-    stroke: #4BB5FF;          /* 初期色。残り時間に合わせて変化させても良い */
-    stroke-width: 12;
-    fill: none;
-    stroke-linecap: round;
-    transition: stroke 0.3s linear;
-  }
-  .time-display {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 2rem;
-    font-weight: bold;
-  }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Visual Timer</title>
+  <meta name="theme-color" content="#0b0f17" />
+  <style>
+    :root{
+      --bg:#0b0f17;
+      --text:#e9eefb;
+      --muted:#aab6d6;
+
+      /* 進捗（0〜1）と色はJSで更新 */
+      --pct: 1;
+      --accent: hsl(200 82% 48%);
+
+      --rim: rgba(233,238,251,.30);
+      --rest: rgba(233,238,251,.14);
+      --shadow: 0 20px 70px rgba(0,0,0,.45);
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:
+        radial-gradient(900px 650px at 15% 0%, rgba(92,200,255,.20), transparent 55%),
+        radial-gradient(900px 650px at 95% 25%, rgba(167,139,250,.18), transparent 55%),
+        var(--bg);
+      color:var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding:20px;
+    }
+
+    .wrap{
+      width:min(960px, 100%);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:18px;
+    }
+
+    /* ===== 円（円内全体を塗る：conic-gradient） ===== */
+    .dial{
+      width:min(78vmin, 560px);           /* ④ 大きく */
+      aspect-ratio:1/1;
+      border-radius:50%;
+      position:relative;
+      box-shadow: var(--shadow);
+      display:grid;
+      place-items:center;
+
+      /* 外枠（写真っぽい薄い縁） */
+      background:
+        radial-gradient(circle at 50% 45%, rgba(255,255,255,.10), transparent 55%),
+        radial-gradient(circle at 50% 65%, rgba(0,0,0,.18), transparent 62%),
+        rgba(255,255,255,.06);
+      border: 1px solid rgba(233,238,251,.18);
+    }
+
+    /* 内側の「面」：ここが塗られて減っていく */
+    .face{
+      width: 82%;
+      height: 82%;
+      border-radius:50%;
+      position:relative;
+
+      /* ① 円内全体が塗られる */
+      background:
+        conic-gradient(
+          from -90deg,
+          var(--accent) calc(var(--pct) * 1turn),
+          var(--rest) 0
+        );
+
+      box-shadow:
+        inset 0 0 0 10px rgba(255,255,255,.07),
+        inset 0 18px 40px rgba(0,0,0,.22);
+      overflow:hidden;
+    }
+
+    /* 内側のハイライト（紙っぽい質感） */
+    .face::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      border-radius:50%;
+      background:
+        radial-gradient(circle at 35% 30%, rgba(255,255,255,.16), transparent 42%),
+        radial-gradient(circle at 65% 75%, rgba(0,0,0,.16), transparent 50%);
+      pointer-events:none;
+      mix-blend-mode: overlay;
+      opacity:.9;
+    }
+
+    /* 中央のノブ */
+    .knob{
+      width: 32%;
+      height: 32%;
+      border-radius:50%;
+      background: rgba(233,238,251,.92);
+      box-shadow:
+        0 14px 30px rgba(0,0,0,.30),
+        inset 0 1px 0 rgba(255,255,255,.6);
+      position:absolute;
+      display:grid;
+      place-items:center;
+    }
+    .knobMark{
+      width: 42%;
+      height: 42%;
+      border-radius:50%;
+      background: rgba(0,0,0,.10);
+      clip-path: polygon(50% 50%, 50% 0%, 72% 10%, 68% 55%);
+      transform: rotate(20deg);
+      opacity:.9;
+    }
+
+    /* 上の小さな点（目印） */
+    .dot{
+      width:10px; height:10px;
+      border-radius:50%;
+      background: rgba(233,238,251,.75);
+      position:absolute;
+      top:6%;
+      left:50%;
+      transform: translateX(-50%);
+      box-shadow: 0 6px 12px rgba(0,0,0,.25);
+    }
+
+    /* ===== UI ===== */
+    .panel{
+      width:min(720px, 100%);
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      align-items:center;
+    }
+
+    .row{
+      width:100%;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:center;
+      align-items:center;
+    }
+
+    .btn{
+      appearance:none;
+      border:1px solid rgba(233,238,251,.18);
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      padding:12px 14px;
+      border-radius: 14px;
+      font-weight:700;
+      cursor:pointer;
+      transition: transform .08s ease, background .15s ease, border-color .15s ease;
+      user-select:none;
+      min-width: 128px;
+      text-align:center;
+    }
+    .btn:hover{background: rgba(255,255,255,.09); border-color: rgba(233,238,251,.28)}
+    .btn:active{transform: translateY(1px)}
+    .btn.primary{
+      background: color-mix(in oklab, var(--accent) 35%, rgba(255,255,255,.06));
+      border-color: color-mix(in oklab, var(--accent) 65%, rgba(233,238,251,.18));
+    }
+    .btn.danger{
+      background: rgba(255, 99, 132, .12);
+      border-color: rgba(255, 99, 132, .35);
+    }
+    .btn:disabled{opacity:.55; cursor:not-allowed}
+
+    .field{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:center;
+      flex-wrap:wrap;
+      color: var(--muted);
+      font-size:14px;
+    }
+    select, input[type="number"]{
+      padding:10px 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(233,238,251,.18);
+      color: var(--text);
+      outline:none;
+      width: 150px;
+    }
+
+    .hint{
+      color: var(--muted);
+      font-size: 12px;
+      text-align:center;
+      line-height:1.5;
+    }
+
+    /* ② 時間表示しない：表示テキストは置かない（要件どおり） */
+
+    @media (max-width: 520px){
+      .btn{min-width: 44%; padding:12px 10px}
+      select, input[type="number"]{width: 44%}
+    }
+  </style>
 </head>
 <body>
-<div class="timer-container">
-  <svg class="progress-ring" width="200" height="200">
-    <circle class="progress-ring__circle" r="90" cx="100" cy="100"/>
-  </svg>
-  <div id="timeDisplay" class="time-display">25:00</div>
-</div>
-<button onclick="startTimer()">スタート</button>
-<button onclick="resetTimer()">リセット</button>
+  <main class="wrap">
+    <div class="dial" aria-label="visual timer">
+      <div class="dot" aria-hidden="true"></div>
+      <div class="face" id="face"></div>
+      <div class="knob" aria-hidden="true"><div class="knobMark"></div></div>
+    </div>
 
-<script>
-  let duration = 25 * 60;        // 秒単位のタイマー長（ここでは25分）
-  let remaining = duration;
-  let intervalId = null;
+    <section class="panel">
+      <div class="field">
+        <span>モード</span>
+        <select id="mode">
+          <option value="focus">Focus</option>
+          <option value="break">Break</option>
+        </select>
 
-  const circle = document.querySelector('.progress-ring__circle');
-  const timeDisplay = document.getElementById('timeDisplay');
-  const radius = circle.r.baseVal.value;
-  const circumference = 2 * Math.PI * radius;
-  circle.style.strokeDasharray = `${circumference} ${circumference}`;
-  circle.style.strokeDashoffset = 0;
+        <span>分</span>
+        <input id="minutes" type="number" min="1" max="180" step="1" value="25" />
+      </div>
 
-  function setProgress(percent) {
-    const offset = circumference - percent * circumference;
-    circle.style.strokeDashoffset = offset;
-  }
+      <div class="row">
+        <button class="btn primary" id="startBtn">開始</button>
+        <button class="btn" id="pauseBtn" disabled>一時停止</button>
+        <button class="btn danger" id="resetBtn">リセット</button>
+      </div>
 
-  function formatTime(seconds) {
-    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-    const s = (seconds % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
-  }
+      <div class="hint">
+        ショートカット：Space = 開始/一時停止、R = リセット<br/>
+        ※時間は表示しません（円の減りだけで把握する設計）
+      </div>
+    </section>
+  </main>
 
-  function updateDisplay() {
-    timeDisplay.textContent = formatTime(remaining);
-    const percent = remaining / duration;
-    setProgress(percent);
-    // 色を徐々に薄くする例（HSLの明度を変更）
-    const lightness = 40 + (1 - percent) * 40;  // 40%→80%
-    circle.style.stroke = `hsl(200, 80%, ${lightness}%)`;
-  }
+  <script>
+    (() => {
+      const root = document.documentElement;
 
-  function startTimer() {
-    if (intervalId) return;   // 二重起動を防止
-    updateDisplay();
-    intervalId = setInterval(() => {
-      remaining--;
-      if (remaining < 0) {
-        clearInterval(intervalId);
-        intervalId = null;
-        alert('時間になりました！');
-        return;
+      const modeEl   = document.getElementById("mode");
+      const minEl    = document.getElementById("minutes");
+      const startBtn = document.getElementById("startBtn");
+      const pauseBtn = document.getElementById("pauseBtn");
+      const resetBtn = document.getElementById("resetBtn");
+
+      // state
+      let durationSec = 25 * 60;
+      let remainingSec = durationSec;
+
+      let running = false;
+      let endAt = null;       // timestamp(ms)
+      let ticker = null;
+
+      // settings persistence
+      const KEY = "visual_timer_v2";
+      function load(){
+        try{
+          const s = JSON.parse(localStorage.getItem(KEY) || "{}");
+          if (s.mode) modeEl.value = s.mode;
+          if (s.min) minEl.value = s.min;
+        }catch{}
       }
-      updateDisplay();
-    }, 1000);
-  }
+      function save(){
+        localStorage.setItem(KEY, JSON.stringify({
+          mode: modeEl.value,
+          min: Number(minEl.value || 25)
+        }));
+      }
 
-  function resetTimer() {
-    clearInterval(intervalId);
-    intervalId = null;
-    remaining = duration;
-    updateDisplay();
-  }
-</script>
+      function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+
+      // 色：残りが減るほど「白っぽく戻る」
+      function setAccent(pct){
+        const baseHue = (modeEl.value === "focus") ? 205 : 140;
+        const sat = 80;
+        const light = clamp(40 + (1 - pct) * 42, 34, 86);
+        root.style.setProperty("--accent", `hsl(${baseHue} ${sat}% ${light}%)`);
+      }
+
+      function setPct(pct){
+        root.style.setProperty("--pct", String(pct));
+        setAccent(pct);
+      }
+
+      function applyMinutes(){
+        const m = clamp(parseInt(minEl.value || "25", 10), 1, 180);
+        durationSec = m * 60;
+        remainingSec = durationSec;
+        endAt = null;
+        setPct(1);
+      }
+
+      function update(){
+        const pct = durationSec ? (remainingSec / durationSec) : 0;
+        setPct(pct);
+      }
+
+      function tick(){
+        if (!running || endAt == null) return;
+        const secLeft = Math.max(0, Math.round((endAt - Date.now()) / 1000));
+        remainingSec = secLeft;
+        update();
+
+        if (secLeft <= 0){
+          stop(true);
+          // 終了時：軽くフラッシュ（時間表示がないので気づけるように）
+          flash();
+        }
+      }
+
+      function start(){
+        if (running) return;
+        save();
+
+        running = true;
+        endAt = Date.now() + remainingSec * 1000;
+
+        ticker = setInterval(tick, 200);
+
+        startBtn.disabled = true;
+        pauseBtn.disabled = false;
+        pauseBtn.textContent = "一時停止";
+      }
+
+      function stop(finished=false){
+        running = false;
+        clearInterval(ticker);
+        ticker = null;
+
+        if (!finished && endAt != null){
+          remainingSec = Math.max(0, Math.round((endAt - Date.now()) / 1000));
+        }
+        endAt = null;
+
+        startBtn.disabled = false;
+        pauseBtn.disabled = true;
+      }
+
+      function pause(){
+        if (!running) return;
+        // 停止（残り保持）
+        stop(false);
+
+        // Pauseボタンを「再開」に変える
+        pauseBtn.disabled = false;
+        pauseBtn.textContent = "再開";
+        startBtn.disabled = true;
+      }
+
+      function resume(){
+        if (running) return;
+        running = true;
+        endAt = Date.now() + remainingSec * 1000;
+        ticker = setInterval(tick, 200);
+
+        pauseBtn.textContent = "一時停止";
+        startBtn.disabled = true;
+        pauseBtn.disabled = false;
+      }
+
+      function reset(){
+        stop(false);
+        applyMinutes();
+        update();
+
+        startBtn.disabled = false;
+        pauseBtn.disabled = true;
+        pauseBtn.textContent = "一時停止";
+      }
+
+      function flash(){
+        const el = document.createElement("div");
+        el.style.position="fixed";
+        el.style.inset="0";
+        el.style.background="rgba(255,255,255,.85)";
+        el.style.zIndex="9999";
+        el.style.pointerEvents="none";
+        el.style.animation="flash .7s ease forwards";
+        const style = document.createElement("style");
+        style.textContent = `
+          @keyframes flash{
+            0%{opacity:0}
+            15%{opacity:1}
+            100%{opacity:0}
+          }
+        `;
+        document.head.appendChild(style);
+        document.body.appendChild(el);
+        setTimeout(()=>{ el.remove(); style.remove(); }, 800);
+      }
+
+      // events
+      modeEl.addEventListener("change", () => { save(); update(); });
+      minEl.addEventListener("change", () => { save(); if(!running) applyMinutes(); update(); });
+
+      startBtn.addEventListener("click", start);
+
+      pauseBtn.addEventListener("click", () => {
+        // 「一時停止」→ pause、 「再開」→ resume
+        if (pauseBtn.textContent.includes("再開")) resume();
+        else pause();
+      });
+
+      resetBtn.addEventListener("click", reset);
+
+      // keyboard
+      window.addEventListener("keydown", (e) => {
+        if (e.target && ["INPUT","SELECT","TEXTAREA"].includes(e.target.tagName)) return;
+        if (e.code === "Space"){
+          e.preventDefault();
+          if (running) pause();
+          else {
+            if (pauseBtn.textContent.includes("再開")) resume();
+            else start();
+          }
+        }
+        if (e.key.toLowerCase() === "r") reset();
+      });
+
+      // init
+      load();
+      applyMinutes();
+      update();
+    })();
+  </script>
 </body>
 </html>
