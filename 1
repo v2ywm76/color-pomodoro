@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Color Pomodoro Timer</title>
+<style>
+  .timer-container {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    margin: 20px;
+  }
+  .progress-ring {
+    transform: rotate(-90deg);
+  }
+  .progress-ring__circle {
+    stroke: #4BB5FF;          /* 初期色。残り時間に合わせて変化させても良い */
+    stroke-width: 12;
+    fill: none;
+    stroke-linecap: round;
+    transition: stroke 0.3s linear;
+  }
+  .time-display {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2rem;
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
+<div class="timer-container">
+  <svg class="progress-ring" width="200" height="200">
+    <circle class="progress-ring__circle" r="90" cx="100" cy="100"/>
+  </svg>
+  <div id="timeDisplay" class="time-display">25:00</div>
+</div>
+<button onclick="startTimer()">スタート</button>
+<button onclick="resetTimer()">リセット</button>
+
+<script>
+  let duration = 25 * 60;        // 秒単位のタイマー長（ここでは25分）
+  let remaining = duration;
+  let intervalId = null;
+
+  const circle = document.querySelector('.progress-ring__circle');
+  const timeDisplay = document.getElementById('timeDisplay');
+  const radius = circle.r.baseVal.value;
+  const circumference = 2 * Math.PI * radius;
+  circle.style.strokeDasharray = `${circumference} ${circumference}`;
+  circle.style.strokeDashoffset = 0;
+
+  function setProgress(percent) {
+    const offset = circumference - percent * circumference;
+    circle.style.strokeDashoffset = offset;
+  }
+
+  function formatTime(seconds) {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  }
+
+  function updateDisplay() {
+    timeDisplay.textContent = formatTime(remaining);
+    const percent = remaining / duration;
+    setProgress(percent);
+    // 色を徐々に薄くする例（HSLの明度を変更）
+    const lightness = 40 + (1 - percent) * 40;  // 40%→80%
+    circle.style.stroke = `hsl(200, 80%, ${lightness}%)`;
+  }
+
+  function startTimer() {
+    if (intervalId) return;   // 二重起動を防止
+    updateDisplay();
+    intervalId = setInterval(() => {
+      remaining--;
+      if (remaining < 0) {
+        clearInterval(intervalId);
+        intervalId = null;
+        alert('時間になりました！');
+        return;
+      }
+      updateDisplay();
+    }, 1000);
+  }
+
+  function resetTimer() {
+    clearInterval(intervalId);
+    intervalId = null;
+    remaining = duration;
+    updateDisplay();
+  }
+</script>
+</body>
+</html>
