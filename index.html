@@ -4,30 +4,29 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Visual Timer</title>
-  <meta name="theme-color" content="#0b0f17" />
+  <meta name="theme-color" content="#ffffff" />
   <style>
     :root{
-      --bg:#0b0f17;
-      --text:#e9eefb;
-      --muted:#aab6d6;
+      /* ① 背景色・枠は白 */
+      --bg:#ffffff;
+      --text:#111827;
+      --muted:#6b7280;
 
       /* 進捗（0〜1）と色はJSで更新 */
       --pct: 1;
-      --accent: hsl(200 82% 48%);
+      --accent: hsl(205 82% 55%);
 
-      --rim: rgba(233,238,251,.30);
-      --rest: rgba(233,238,251,.14);
-      --shadow: 0 20px 70px rgba(0,0,0,.45);
+      /* 薄い枠＆影（白背景用） */
+      --rim: rgba(0,0,0,.10);
+      --rest: rgba(17,24,39,.08);
+      --shadow: 0 20px 70px rgba(0,0,0,.12);
     }
 
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
       margin:0;
-      background:
-        radial-gradient(900px 650px at 15% 0%, rgba(92,200,255,.20), transparent 55%),
-        radial-gradient(900px 650px at 95% 25%, rgba(167,139,250,.18), transparent 55%),
-        var(--bg);
+      background: var(--bg);
       color:var(--text);
       font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial;
       display:flex;
@@ -46,7 +45,7 @@
 
     /* ===== 円（円内全体を塗る：conic-gradient） ===== */
     .dial{
-      width:min(78vmin, 560px);           /* ④ 大きく */
+      width:min(78vmin, 560px);           /* 大きく表示 */
       aspect-ratio:1/1;
       border-radius:50%;
       position:relative;
@@ -54,12 +53,8 @@
       display:grid;
       place-items:center;
 
-      /* 外枠（写真っぽい薄い縁） */
-      background:
-        radial-gradient(circle at 50% 45%, rgba(255,255,255,.10), transparent 55%),
-        radial-gradient(circle at 50% 65%, rgba(0,0,0,.18), transparent 62%),
-        rgba(255,255,255,.06);
-      border: 1px solid rgba(233,238,251,.18);
+      background: #ffffff;               /* 外枠も白 */
+      border: 1px solid var(--rim);      /* 薄い枠線 */
     }
 
     /* 内側の「面」：ここが塗られて減っていく */
@@ -69,17 +64,19 @@
       border-radius:50%;
       position:relative;
 
-      /* ① 円内全体が塗られる */
+      /* ② 時計回り + 頂点（12時）開始 */
+      /* --pct が 1→0 に減ると塗りが減る */
       background:
         conic-gradient(
           from -90deg,
+          var(--accent) 0turn,
           var(--accent) calc(var(--pct) * 1turn),
           var(--rest) 0
         );
 
       box-shadow:
-        inset 0 0 0 10px rgba(255,255,255,.07),
-        inset 0 18px 40px rgba(0,0,0,.22);
+        inset 0 0 0 10px rgba(0,0,0,.05),
+        inset 0 18px 40px rgba(0,0,0,.08);
       overflow:hidden;
     }
 
@@ -90,11 +87,11 @@
       inset:0;
       border-radius:50%;
       background:
-        radial-gradient(circle at 35% 30%, rgba(255,255,255,.16), transparent 42%),
-        radial-gradient(circle at 65% 75%, rgba(0,0,0,.16), transparent 50%);
+        radial-gradient(circle at 35% 30%, rgba(255,255,255,.55), transparent 45%),
+        radial-gradient(circle at 65% 75%, rgba(0,0,0,.10), transparent 55%);
       pointer-events:none;
       mix-blend-mode: overlay;
-      opacity:.9;
+      opacity:.8;
     }
 
     /* 中央のノブ */
@@ -102,10 +99,11 @@
       width: 32%;
       height: 32%;
       border-radius:50%;
-      background: rgba(233,238,251,.92);
+      background: #ffffff;
+      border: 1px solid rgba(0,0,0,.10);
       box-shadow:
-        0 14px 30px rgba(0,0,0,.30),
-        inset 0 1px 0 rgba(255,255,255,.6);
+        0 14px 30px rgba(0,0,0,.12),
+        inset 0 1px 0 rgba(255,255,255,.9);
       position:absolute;
       display:grid;
       place-items:center;
@@ -114,7 +112,7 @@
       width: 42%;
       height: 42%;
       border-radius:50%;
-      background: rgba(0,0,0,.10);
+      background: rgba(0,0,0,.14);
       clip-path: polygon(50% 50%, 50% 0%, 72% 10%, 68% 55%);
       transform: rotate(20deg);
       opacity:.9;
@@ -124,12 +122,12 @@
     .dot{
       width:10px; height:10px;
       border-radius:50%;
-      background: rgba(233,238,251,.75);
+      background: rgba(0,0,0,.45);
       position:absolute;
       top:6%;
       left:50%;
       transform: translateX(-50%);
-      box-shadow: 0 6px 12px rgba(0,0,0,.25);
+      box-shadow: 0 6px 12px rgba(0,0,0,.10);
     }
 
     /* ===== UI ===== */
@@ -152,8 +150,8 @@
 
     .btn{
       appearance:none;
-      border:1px solid rgba(233,238,251,.18);
-      background: rgba(255,255,255,.06);
+      border:1px solid rgba(0,0,0,.12);
+      background: rgba(0,0,0,.03);
       color: var(--text);
       padding:12px 14px;
       border-radius: 14px;
@@ -164,14 +162,14 @@
       min-width: 128px;
       text-align:center;
     }
-    .btn:hover{background: rgba(255,255,255,.09); border-color: rgba(233,238,251,.28)}
+    .btn:hover{background: rgba(0,0,0,.06); border-color: rgba(0,0,0,.18)}
     .btn:active{transform: translateY(1px)}
     .btn.primary{
-      background: color-mix(in oklab, var(--accent) 35%, rgba(255,255,255,.06));
-      border-color: color-mix(in oklab, var(--accent) 65%, rgba(233,238,251,.18));
+      background: color-mix(in oklab, var(--accent) 22%, rgba(0,0,0,.03));
+      border-color: color-mix(in oklab, var(--accent) 55%, rgba(0,0,0,.12));
     }
     .btn.danger{
-      background: rgba(255, 99, 132, .12);
+      background: rgba(255, 99, 132, .10);
       border-color: rgba(255, 99, 132, .35);
     }
     .btn:disabled{opacity:.55; cursor:not-allowed}
@@ -188,8 +186,8 @@
     select, input[type="number"]{
       padding:10px 12px;
       border-radius: 12px;
-      background: rgba(255,255,255,.05);
-      border: 1px solid rgba(233,238,251,.18);
+      background: rgba(0,0,0,.03);
+      border: 1px solid rgba(0,0,0,.12);
       color: var(--text);
       outline:none;
       width: 150px;
@@ -202,7 +200,7 @@
       line-height:1.5;
     }
 
-    /* ② 時間表示しない：表示テキストは置かない（要件どおり） */
+    /* ※時間は表示しません（要件どおり） */
 
     @media (max-width: 520px){
       .btn{min-width: 44%; padding:12px 10px}
@@ -262,7 +260,7 @@
       let ticker = null;
 
       // settings persistence
-      const KEY = "visual_timer_v2";
+      const KEY = "visual_timer_v3_white";
       function load(){
         try{
           const s = JSON.parse(localStorage.getItem(KEY) || "{}");
@@ -283,7 +281,7 @@
       function setAccent(pct){
         const baseHue = (modeEl.value === "focus") ? 205 : 140;
         const sat = 80;
-        const light = clamp(40 + (1 - pct) * 42, 34, 86);
+        const light = clamp(42 + (1 - pct) * 40, 34, 88);
         root.style.setProperty("--accent", `hsl(${baseHue} ${sat}% ${light}%)`);
       }
 
@@ -313,7 +311,6 @@
 
         if (secLeft <= 0){
           stop(true);
-          // 終了時：軽くフラッシュ（時間表示がないので気づけるように）
           flash();
         }
       }
@@ -348,10 +345,8 @@
 
       function pause(){
         if (!running) return;
-        // 停止（残り保持）
         stop(false);
 
-        // Pauseボタンを「再開」に変える
         pauseBtn.disabled = false;
         pauseBtn.textContent = "再開";
         startBtn.disabled = true;
@@ -382,7 +377,7 @@
         const el = document.createElement("div");
         el.style.position="fixed";
         el.style.inset="0";
-        el.style.background="rgba(255,255,255,.85)";
+        el.style.background="rgba(0,0,0,.08)";
         el.style.zIndex="9999";
         el.style.pointerEvents="none";
         el.style.animation="flash .7s ease forwards";
@@ -406,7 +401,6 @@
       startBtn.addEventListener("click", start);
 
       pauseBtn.addEventListener("click", () => {
-        // 「一時停止」→ pause、 「再開」→ resume
         if (pauseBtn.textContent.includes("再開")) resume();
         else pause();
       });
