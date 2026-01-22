@@ -67,12 +67,12 @@
       /* ② 時計回り + 頂点（12時）開始 */
       /* --pct が 1→0 に減ると塗りが減る */
       background:
-        conic-gradient(
-          from -90deg,
-          var(--accent) 0turn,
-          var(--accent) calc(var(--pct) * 1turn),
-          var(--rest) 0
-        );
+  conic-gradient(
+    from 0deg, /* ←頂点(12時)開始 */
+    var(--rest) 0turn,
+    var(--rest) calc((1 - var(--pct)) * 1turn), /* 経過が時計回りに増える */
+    var(--accent) 0
+  );
 
       box-shadow:
         inset 0 0 0 10px rgba(0,0,0,.05),
